@@ -352,8 +352,6 @@
     }
   });
 
-  // Tapping anywhere in the terminal (including on mobile) focuses the input
-  // so the on-screen keyboard opens, without stealing focus from links.
   document.querySelector('.window').addEventListener('click', (e) => {
     if(e.target.tagName === 'A') return;
     input.focus();
@@ -373,14 +371,12 @@
     div.textContent = banner;
     screen.appendChild(div);
 
-    // compact fallback shown only on small screens via CSS
     const compact = document.createElement('div');
     compact.className = 'line banner-compact';
     compact.textContent = '> SACHIN.DEV';
     screen.appendChild(compact);
   }
 
-  // boot sequence
   function boot(){
     printBanner();
     printRaw(`<span class="ok">Welcome to ${esc(PROFILE.name)}'s terminal.</span> Type <span class="warm">help</span> to get started.`);
