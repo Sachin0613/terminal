@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>sachin@dev-machine ~ </title>
+<style>
+  :root{
+    --bg: #0a0e14;
+    --panel: #10151d;
+    --border: #1f2b38;
+    --text: #c9d6e3;
+    --dim: #5b6b7c;
+    --prompt: #4fd6be;
+    --accent: #6aa9ff;
+    --accent-warm: #ffb454;
+    --ok: #7ee787;
+    --error: #ff7b72;
+    --font: 'SFMono-Regular', 'Consolas', 'Menlo', 'Courier New', monospace;
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{
+    margin:0; padding:0;
+    height:100%;
+    background: radial-gradient(circle at 50% 0%, #0d1420 0%, #05070a 70%);
+    font-family: var(--font);
+    color: var(--text);
+    overscroll-behavior: none;
+  }
+  body{
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh;
+    min-height: 100dvh;
+    padding: 24px;
+  }
+  .window{
+    width: 100%;
+    max-width: 860px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.02);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .titlebar{
+    display:flex; align-items:center; gap:10px;
+    padding: 10px 14px;
+    background: linear-gradient(180deg, #151c26, #10151d);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .dot{ width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+  .dot.red{ background:#ff5f57; }
+  .dot.yellow{ background:#febc2e; }
+  .dot.green{ background:#28c840; }
+  .titlebar .path{
+    flex:1; text-align:center;
+    font-size: 12.5px; color: var(--dim);
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .screen{
+    height: 560px;
+    max-height: 65vh;
+    max-height: 65dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 18px 20px 12px;
+    font-size: 14.5px;
+    line-height: 1.65;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  .screen::-webkit-scrollbar{ width: 10px; }
+  .screen::-webkit-scrollbar-thumb{ background: #1c2733; border-radius: 6px; }
+  .screen::-webkit-scrollbar-track{ background: transparent; }
+
+  .line{ white-space: pre-wrap; word-break: break-word; }
+  .prompt-line{ display:flex; gap:8px; flex-wrap:wrap; }
+  .user{ color: var(--ok); }
+  .at{ color: var(--dim); }
+  .host{ color: var(--accent); }
+  .path-seg{ color: var(--accent-warm); }
+  .sym{ color: var(--dim); }
+  .cmd-echo{ color: var(--text); word-break: break-word; }
+
+  .out{ color: var(--text); margin: 2px 0 10px 0; }
+  .out .head{ color: var(--prompt); font-weight: 600; }
+  .out .dim{ color: var(--dim); }
+  .out .accent{ color: var(--accent); }
+  .out .ok{ color: var(--ok); }
+  .out .warm{ color: var(--accent-warm); }
+  .out a{ color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); word-break: break-all; }
+  .out a:hover{ color: var(--accent-warm); border-color: var(--accent-warm); }
+
+  .banner{
+    color: var(--prompt); font-size: 12px; line-height: 1.3; margin-bottom: 10px;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .banner-compact{ display:none; }
+
+  table.info{ border-collapse: collapse; margin: 4px 0 4px 0; width:100%; }
+  table.info td{ padding: 3px 14px 3px 0; vertical-align: top; }
+  table.info td.k{ color: var(--dim); white-space: nowrap; }
+
+  .skill-row{ display:flex; align-items:center; gap:10px; margin: 4px 0; flex-wrap: wrap; }
+  .skill-name{ width: 130px; color: var(--text); flex-shrink:0; }
+  .bar{ flex:1; height: 6px; background:#1c2733; border-radius:4px; overflow:hidden; max-width: 220px; min-width: 60px; }
+  .bar-fill{ height:100%; background: linear-gradient(90deg, var(--prompt), var(--accent)); border-radius:4px; }
+
+  .input-row{
+    display:flex; align-items:center; gap:8px;
+    padding: 10px 14px 14px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .input-row .static-prompt{ display:flex; gap:6px; align-items:center; flex-shrink:0; }
+  #cmd-input{
+    flex:1; min-width: 80px; background: transparent; border: none; outline: none;
+    color: var(--text); font-family: var(--font); font-size: 16px;
+    caret-color: var(--prompt);
+  }
+  .cursor-blink{
+    display:inline-block; width:8px; height:16px; background: var(--prompt);
+    animation: blink 1s steps(1) infinite; vertical-align: middle; margin-left:2px;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .hint{ color: var(--dim); font-size: 12px; padding: 0 14px 14px; line-height: 1.6; }
+  .badge{
+    display:inline-block; padding: 1px 7px; border-radius: 4px;
+    border: 1px solid var(--border); color: var(--dim); font-size: 11px;
+    margin-right: 6px; margin-bottom: 4px;
+  }
+
+  /* ---- Mobile responsiveness ---- */
+  @media (max-width: 640px){
+    body{ padding: 10px; align-items: stretch; }
+    .window{
+      max-width: 100%;
+      border-radius: 8px;
+      height: calc(100vh - 20px);
+      height: calc(100dvh - 20px);
+    }
+    .titlebar{ padding: 8px 10px; }
+    .titlebar .path{ font-size: 11px; }
+    .screen{
+      flex: 1 1 auto;
+      max-height: none;
+      height: auto;
+      padding: 12px 14px 10px;
+      font-size: 13.5px;
+      line-height: 1.55;
+    }
+    .banner{ display:none; }
+    .banner-compact{
+      display:block;
+      color: var(--prompt);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .skill-name{ width: 105px; font-size: 13px; }
+    .bar{ max-width: 120px; }
+    table.info td{ display:block; padding: 1px 0; }
+    table.info td.k{ padding-top: 6px; }
+    table.info tr{ display:block; margin-bottom: 2px; }
+    .input-row{ padding: 8px 10px 12px; }
+    .hint{ padding: 0 10px 12px; font-size: 11px; }
+  }
+
+  @media (max-width: 380px){
+    .skill-name{ width: 92px; font-size: 12px; }
+    .out{ font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="window">
+  <div class="titlebar">
+    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+    <span class="path">sachin@dev-machine: ~/portfolio</span>
+  </div>
+
+  <div class="screen" id="screen"></div>
+
+  <div class="input-row">
+    <span class="static-prompt">
+      <span class="user">guest</span><span class="at">@</span><span class="host">sachin.dev</span>
+      <span class="sym">:</span><span class="path-seg">~</span><span class="sym">$</span>
+    </span>
+    <input id="cmd-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" autofocus />
+  </div>
+  <div class="hint">type <span class="badge">help</span> to see everything this terminal can do — try <span class="badge">about</span>, <span class="badge">skills</span>, <span class="badge">connect</span></div>
+</div>
+
+<script>
+(function(){
+  const screen = document.getElementById('screen');
+  const input = document.getElementById('cmd-input');
+
+  // ---- EDIT YOUR INFO HERE ----
+  const PROFILE = {
+    name: "Sachin Yadav",
+    role: "AI & Full-Stack Developer",
+    location: "India",
+    email: "yadavsachin5001@gmail.com",
+    linkedin: "https://www.linkedin.com/in/sachin-yadav-631b6031a/",
+    github: "https://github.com/sachin0613",
+    portfolio: "https://sachin-portfolio-72.vercel.app/",
+    hackerrank: "https://www.hackerrank.com/sachin6001",
+    about: [
+      "Full-stack developer with a growing focus on AI, LLMs, and intelligent agents.",
+      "Comfortable across the stack — from REST APIs and databases to React frontends —",
+      "and currently deepening skills in data analysis and applied machine learning."
+    ],
+    skills: [
+      { name: "JavaScript/TS", level: 85 },
+      { name: "Python",       level: 80 },
+      { name: "React",        level: 80 },
+      { name: "Node/Express", level: 78 },
+      { name: "MongoDB/SQL",  level: 75 },
+      { name: "AWS",          level: 60 },
+      { name: "Git/CI-CD",    level: 75 },
+    ],
+    projects: [
+      { name: "Portfolio Website", desc: "Personal site showcasing projects & skills.", link: "https://sachin-portfolio-72.vercel.app/#projects" }
+    ]
+  };
+  // ---- END EDIT ZONE ----
+
+  const history = [];
+  let historyIndex = -1;
+
+  function esc(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function printRaw(html){
+    const div = document.createElement('div');
+    div.className = 'line out';
+    div.innerHTML = html;
+    screen.appendChild(div);
+    screen.scrollTop = screen.scrollHeight;
+  }
+
+  function printEcho(cmd){
+    const div = document.createElement('div');
+    div.className = 'line prompt-line';
+    div.innerHTML = `<span class="user">guest</span><span class="at">@</span><span class="host">sachin.dev</span><span class="sym">:</span><span class="path-seg">~</span><span class="sym">$</span> <span class="cmd-echo">${esc(cmd)}</span>`;
+    screen.appendChild(div);
+    screen.scrollTop = screen.scrollHeight;
+  }
+
+  const COMMANDS = {
+    help(){
+      return `<div class="head">Available commands</div>
+      <table class="info">
+        <tr><td class="k">about</td><td>who I am</td></tr>
+        <tr><td class="k">skills</td><td>tech stack &amp; proficiency</td></tr>
+        <tr><td class="k">projects</td><td>things I've built</td></tr>
+        <tr><td class="k">connect</td><td>email, LinkedIn, GitHub &amp; more</td></tr>
+        <tr><td class="k">whoami</td><td>quick identity line</td></tr>
+        <tr><td class="k">resume</td><td>portfolio link</td></tr>
+        <tr><td class="k">clear</td><td>clear the screen</td></tr>
+        <tr><td class="k">help</td><td>show this list again</td></tr>
+      </table>`;
+    },
+    about(){
+      return `<div class="head">About Me</div>
+      ${PROFILE.about.map(l=>`<div>${esc(l)}</div>`).join('')}
+      <div class="dim" style="margin-top:6px;">📍 ${esc(PROFILE.location)} &nbsp;·&nbsp; 🎯 currently exploring LLMs &amp; AI agents</div>`;
+    },
+    skills(){
+      const rows = PROFILE.skills.map(s => `
+        <div class="skill-row">
+          <span class="skill-name">${esc(s.name)}</span>
+          <div class="bar"><div class="bar-fill" style="width:${s.level}%"></div></div>
+          <span class="dim">${s.level}%</span>
+        </div>`).join('');
+      return `<div class="head">Skills</div>${rows}`;
+    },
+    projects(){
+      const rows = PROFILE.projects.map(p => `
+        <div style="margin-bottom:6px;">
+          <span class="accent">${esc(p.name)}</span> — <span class="dim">${esc(p.desc)}</span><br/>
+          <a href="${p.link}" target="_blank" rel="noopener">${p.link}</a>
+        </div>`).join('');
+      return `<div class="head">Projects</div>${rows}
+      <div class="dim" style="margin-top:4px;">See everything → <a href="${PROFILE.portfolio}#projects" target="_blank">${PROFILE.portfolio}#projects</a></div>`;
+    },
+    connect(){
+      return `<div class="head">Let's Connect</div>
+      <table class="info">
+        <tr><td class="k">email</td><td><a href="mailto:${PROFILE.email}">${PROFILE.email}</a></td></tr>
+        <tr><td class="k">linkedin</td><td><a href="${PROFILE.linkedin}" target="_blank">${PROFILE.linkedin}</a></td></tr>
+        <tr><td class="k">github</td><td><a href="${PROFILE.github}" target="_blank">${PROFILE.github}</a></td></tr>
+        <tr><td class="k">portfolio</td><td><a href="${PROFILE.portfolio}" target="_blank">${PROFILE.portfolio}</a></td></tr>
+        <tr><td class="k">hackerrank</td><td><a href="${PROFILE.hackerrank}" target="_blank">${PROFILE.hackerrank}</a></td></tr>
+      </table>`;
+    },
+    whoami(){
+      return `<span class="ok">${esc(PROFILE.name)}</span> — <span class="accent">${esc(PROFILE.role)}</span>`;
+    },
+    resume(){
+      return `Portfolio / resume → <a href="${PROFILE.portfolio}" target="_blank">${PROFILE.portfolio}</a>`;
+    },
+    clear(){
+      screen.innerHTML = '';
+      return null;
+    },
+    banner(){
+      printBanner();
+      return null;
+    }
+  };
+
+  function runCommand(raw){
+    const cmd = raw.trim().toLowerCase();
+    if(cmd === '') return;
+    history.push(raw);
+    historyIndex = history.length;
+    printEcho(raw);
+
+    if(COMMANDS.hasOwnProperty(cmd)){
+      const out = COMMANDS[cmd]();
+      if(out) printRaw(out);
+    } else {
+      printRaw(`<span class="error">command not found:</span> ${esc(cmd)} — type <span class="warm">help</span> to see what's available`);
+    }
+  }
+
+  input.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){
+      runCommand(input.value);
+      input.value = '';
+    } else if(e.key === 'ArrowUp'){
+      if(historyIndex > 0){ historyIndex--; input.value = history[historyIndex]; }
+      e.preventDefault();
+    } else if(e.key === 'ArrowDown'){
+      if(historyIndex < history.length - 1){ historyIndex++; input.value = history[historyIndex]; }
+      else { historyIndex = history.length; input.value = ''; }
+      e.preventDefault();
+    }
+  });
+
+  // Tapping anywhere in the terminal (including on mobile) focuses the input
+  // so the on-screen keyboard opens, without stealing focus from links.
+  document.querySelector('.window').addEventListener('click', (e) => {
+    if(e.target.tagName === 'A') return;
+    input.focus();
+  });
+
+  function printBanner(){
+    const banner = `
+  ███████╗ █████╗  ██████╗██╗  ██╗██╗███╗   ██╗
+  ██╔════╝██╔══██╗██╔════╝██║  ██║██║████╗  ██║
+  ███████╗███████║██║     ███████║██║██╔██╗ ██║
+  ╚════██║██╔══██║██║     ██╔══██║██║██║╚██╗██║
+  ███████║██║  ██║╚██████╗██║  ██║██║██║ ╚████║
+  ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+    `;
+    const div = document.createElement('div');
+    div.className = 'line banner';
+    div.textContent = banner;
+    screen.appendChild(div);
+
+    // compact fallback shown only on small screens via CSS
+    const compact = document.createElement('div');
+    compact.className = 'line banner-compact';
+    compact.textContent = '> SACHIN.DEV';
+    screen.appendChild(compact);
+  }
+
+  // boot sequence
+  function boot(){
+    printBanner();
+    printRaw(`<span class="ok">Welcome to ${esc(PROFILE.name)}'s terminal.</span> Type <span class="warm">help</span> to get started.`);
+  }
+  boot();
+})();
+</script>
+
+</body>
+</html>
